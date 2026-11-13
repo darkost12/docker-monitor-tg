@@ -123,8 +123,15 @@ func TestRunWrapsErrorWithOutput(t *testing.T) {
 	if !errors.Is(err, boom) {
 		t.Errorf("original error should be preserved %%w: %v", err)
 	}
-	if !strings.Contains(err.Error(), "No such container: nope") {
-		t.Errorf("docker output should be in error: %v", err)
+	var ce *CommandError
+	if !errors.As(err, &ce) {
+		t.Fatalf("expected *CommandError, got %T", err)
+	}
+	if got, want := err.Error(), "Error: No such container: nope"; got != want {
+		t.Errorf("err.Error() = %q, want %q", got, want)
+	}
+	if strings.Contains(err.Error(), "exit status") {
+		t.Errorf("exit status shouldn't be in error: %v", err)
 	}
 }
 

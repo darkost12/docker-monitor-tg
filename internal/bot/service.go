@@ -106,5 +106,12 @@ func errorText(err error) string {
 	if errors.Is(err, docker.ErrInvalidName) {
 		return "Invalid container name or hash."
 	}
-	return "Error: " + html.EscapeString(err.Error())
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "No such container"):
+		return "Container not found"
+	case strings.Contains(msg, "Cannot connect to the Docker daemon"):
+		return "Docker not running"
+	}
+	return "Error: " + html.EscapeString(msg)
 }

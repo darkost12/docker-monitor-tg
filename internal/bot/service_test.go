@@ -217,6 +217,41 @@ func TestHandleTextActsAsLogs(t *testing.T) {
 	}
 }
 
+func TestFriendlyDockerErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{
+			"container not found",
+			&docker.CommandError{Output: "Error response from daemon: No such container: 123", Err: errors.New("exit status 1")},
+			"Container not found",
+		},
+		{
+			"Docker not running",
+			&docker.CommandError{Output: "Cannot connect to the Docker daemon at unix:///x.sock. Is the docker daemon running?", Err: errors.New("exit status 1")},
+			"Docker not running",
+		},
+		{
+			"Other errors",
+			&docker.CommandError{Output: "something <odd> happened", Err: errors.New("exit status 1")},
+			"Error: something &lt;odd&gt; happened",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := newSvc(&fakeDocker{err: tt.err})
+			if got := s.HandleCommand(context.Background(), "logs", []string{"web"}); got != tt.want {
+				t.Errorf("logs: got %q, want %q", got, tt.want)
+			}
+			if got := s.HandleCommand(context.Background(), "ps", nil); got != tt.want {
+				t.Errorf("ps: got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestHandleTextEmpty(t *testing.T) {
 	f := &fakeDocker{}
 	got := newSvc(f).HandleText(context.Background(), "   ")

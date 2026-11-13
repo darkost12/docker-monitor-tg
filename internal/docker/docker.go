@@ -3,7 +3,6 @@ package docker
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -19,6 +18,20 @@ var (
 var nameRe = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]*$`)
 
 func ValidName(s string) bool { return nameRe.MatchString(s) }
+
+type CommandError struct {
+	Output string
+	Err    error
+}
+
+func (e *CommandError) Error() string {
+	if e.Output != "" {
+		return e.Output
+	}
+	return e.Err.Error()
+}
+
+func (e *CommandError) Unwrap() error { return e.Err }
 
 type Container struct {
 	ID     string
@@ -66,7 +79,7 @@ func (c *Client) run(ctx context.Context, args ...string) (string, error) {
 		return "", ErrTimeout
 	}
 	if err != nil {
-		return "", fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
+		return "", &CommandError{Output: strings.TrimSpace(string(out)), Err: err}
 	}
 	return string(out), nil
 }
