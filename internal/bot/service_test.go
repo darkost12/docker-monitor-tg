@@ -252,6 +252,30 @@ func TestFriendlyDockerErrors(t *testing.T) {
 	}
 }
 
+func TestLogsStripsANSI(t *testing.T) {
+	f := &fakeDocker{logs: "\x1b[2K\x1b[0m[\x1b[96m2026-11-12 05:00:22\x1b[0m | \x1b[96mINFO\x1b[0m] Refreshing stats\x1b[0m"}
+	got := newSvc(f).HandleCommand(context.Background(), "logs", []string{"web"})
+
+	want := "<pre>[2026-11-12 05:00:22 | INFO] Refreshing stats</pre>"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestLogsANSIDoesNotCountTowardLimit(t *testing.T) {
+	line := "\x1b[96mINFO\x1b[0m ok\n"
+	f := &fakeDocker{logs: strings.Repeat(line, 300)}
+
+	got := newSvc(f).HandleCommand(context.Background(), "logs", []string{"web"})
+
+	if strings.HasPrefix(got, "<pre>…") {
+		t.Error("text fits after stripping codes, truncation not expected")
+	}
+	if n := strings.Count(got, "INFO ok"); n != 300 {
+		t.Errorf("expected 300 lines, got %d", n)
+	}
+}
+
 func TestHandleTextEmpty(t *testing.T) {
 	f := &fakeDocker{}
 	got := newSvc(f).HandleText(context.Background(), "   ")

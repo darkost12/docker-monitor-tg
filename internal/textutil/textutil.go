@@ -1,6 +1,13 @@
 package textutil
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
+
+var ansiRe = regexp.MustCompile(`\x1b\[[0-9;?]*[ -/]*[@-~]`)
+
+func StripANSI(s string) string { return ansiRe.ReplaceAllString(s, "") }
 
 func Tail(s string, max int) string {
 	r := []rune(s)

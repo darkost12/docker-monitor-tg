@@ -96,6 +96,7 @@ func (s *Service) logs(ctx context.Context, args []string) string {
 	if err != nil {
 		return errorText(err)
 	}
+	out = textutil.StripANSI(out)
 	if strings.TrimSpace(out) == "" {
 		return "Logs empty."
 	}

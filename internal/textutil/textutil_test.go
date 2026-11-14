@@ -53,3 +53,33 @@ func TestHead(t *testing.T) {
 		})
 	}
 }
+
+func TestStripANSI(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"plain text does not change", "plain text", "plain text"},
+		{"color and reset", "\x1b[96mINFO\x1b[0m", "INFO"},
+		{"erase line", "\x1b[2Kline", "line"},
+		{"several parameters", "\x1b[1;31mERROR\x1b[0m", "ERROR"},
+		{"256 colors", "\x1b[38;5;208mwarn\x1b[0m", "warn"},
+		{"cursor control", "\x1b[?25lhidden\x1b[?25h", "hidden"},
+		{
+			"line from real logs",
+			"\x1b[2K\x1b[0m\x1b[2K[\x1b[96m2026-11-12 05:00:22\x1b[0m | \x1b[96mINFO\x1b[0m] [hello] Refreshing stats\x1b[0m",
+			"[2026-11-12 05:00:22 | INFO] [hello] Refreshing stats",
+		},
+		{"brackets without ESC are kept", "array[0] and [96m", "array[0] and [96m"},
+		{"cyrillic is kept", "\x1b[32mготово\x1b[0m", "готово"},
+		{"empty string", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := StripANSI(tt.in); got != tt.want {
+				t.Errorf("StripANSI(%q) = %q, want %q", tt.in, got, tt.want)
+			}
+		})
+	}
+}
